@@ -1,5 +1,5 @@
-resource "aws_vpc_peering_connection" "foo" {
-  count = var.is_peering_required ? 1 : 0   #Here count is 0, meaning default condition is false as mentioned in variable, 0 means not create.
+resource "aws_vpc_peering_connection" "default" {
+  count = var.is_peering_required ? 1 : 0
   
   vpc_id        = aws_vpc.main.id #requestor
   peer_vpc_id   = local.default_vpc_id #acceptor
@@ -12,5 +12,34 @@ resource "aws_vpc_peering_connection" "foo" {
         Name = "${local.resource_name}-default"
     }
   )
-  
 }
+
+resource "aws_route" "public_peering" {
+  count = var.is_peering_required ? 1 : 0
+  route_table_id            = aws_route_table.public.id
+  destination_cidr_block    = local.default_vpc_cidr
+  vpc_peering_connection_id = aws_vpc_peering_connection.default[count.index].id
+}
+
+resource "aws_route" "private_peering" {
+  count = var.is_peering_required ? 1 : 0
+  route_table_id            = aws_route_table.private.id
+  destination_cidr_block    = local.default_vpc_cidr
+  vpc_peering_connection_id = aws_vpc_peering_connection.default[count.index].id
+}
+
+resource "aws_route" "database_peering" {
+  count = var.is_peering_required ? 1 : 0
+  route_table_id            = aws_route_table.database.id
+  destination_cidr_block    = local.default_vpc_cidr
+  vpc_peering_connection_id = aws_vpc_peering_connection.default[count.index].id
+}
+
+resource "aws_route" "default_peering" {
+  count = var.is_peering_required ? 1 : 0
+  route_table_id            = data.aws_route_table.main.route_table_id
+  destination_cidr_block    = var.vpc_cidr
+  vpc_peering_connection_id = aws_vpc_peering_connection.default[count.index].id
+}
+
+
